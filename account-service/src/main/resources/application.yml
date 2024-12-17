@@ -2,10 +2,21 @@ spring:
   application:
     name: ACCOUNT-SERVICE
 
+server:
+  port: 9001
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-server:
-  port: 9001
+# Swagger_ui
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+swagger:
+  url: http://localhost:9001/swagger-ui.html

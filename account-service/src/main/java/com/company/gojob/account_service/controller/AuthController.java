@@ -7,22 +7,26 @@ import com.company.gojob.account_service.payload.response.AuthResponse;
 import com.company.gojob.account_service.service.AuthService;
 import com.company.gojob.account_service.service.JwtService;
 import com.company.gojob.account_service.service.UserCredentialService;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/auth")
+@CrossOrigin("*")
 public class AuthController {
 
     @Autowired
@@ -36,55 +40,61 @@ public class AuthController {
 
     @Autowired
     private UserCredentialService userCredentialService;
+    private String token;
 
-    @PostMapping("/register")
-    public String addNewUser(@RequestBody UserCredential user){
+    @PostMapping(ApiEndpoints.AUTH_REGISTER)
+    public String addNewUser(@RequestBody UserCredential user) {
         return authService.createUser(user);
     }
 
-    @PostMapping("/token")
-    public String getToken(@RequestBody AuthRequest request){
+
+    @PostMapping(ApiEndpoints.AUTH_GENERATE_TOKEN)
+    public String getToken(@RequestBody AuthRequest request) {
 
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        if (authentication.isAuthenticated()){
+        if (authentication.isAuthenticated()) {
             return authService.generateToken(request.getUsername());
         }
         throw new RuntimeException("Authentication is not authenticated.");
     }
 
-    @PostMapping("/login")
+    @PostMapping(ApiEndpoints.AUTH_LOGIN)
     public ResponseEntity<AuthResponse<Map<String, String>>> login(@RequestBody AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        if (authentication.isAuthenticated()) {
-            String accessToken = authService.generateToken(request.getUsername());
-            String refreshToken = jwtService.generateRefreshToken(request.getUsername());
+            if (authentication.isAuthenticated()) {
+                String accessToken = authService.generateToken(request.getUsername());
+                String refreshToken = jwtService.generateRefreshToken(request.getUsername());
 
-            Map<String, String> tokens = new HashMap<>();
-            tokens.put("accessToken", accessToken);
-            tokens.put("refreshToken", refreshToken);
+                Map<String, String> tokens = new HashMap<>();
+                tokens.put("accessToken", accessToken);
+                tokens.put("refreshToken", refreshToken);
 
-            // Tạo header với status
+                // Tạo header với status
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("status", "200");
+
+                // Trả về kết quả thành công
+                return ResponseEntity.ok(new AuthResponse<>(200, "Success", tokens));
+            }
+        } catch (Exception ex) {
+            // Trường hợp thất bại, ví dụ: Sai username/password
             HttpHeaders headers = new HttpHeaders();
-            headers.set("status", "200");
-
-            // Trả về ResponseEntity
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(new AuthResponse<>(200, "Success", tokens));
+            headers.set("status", "401");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse<>(401, "UNAUTHORIZED", new HashMap<>()));
         }
 
         // Trường hợp thất bại
         HttpHeaders headers = new HttpHeaders();
-        headers.set("status", "401");
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .headers(headers)
-                .body(new AuthResponse<>(401, "Authentication failed", null));
+        headers.set("status", "403");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new AuthResponse<>(403, "FORBIDDEN", new HashMap<>()));
     }
 
-    @PostMapping("/refresh")
+    @PostMapping(ApiEndpoints.AUTH_REFRESH_TOKEN)
     public ResponseEntity<AuthResponse<Map<String, String>>> refreshToken(@RequestBody Map<String, String> tokenRequest) {
         String refreshToken = tokenRequest.get("refreshToken");
 
@@ -116,31 +126,38 @@ public class AuthController {
     }
 
 
-    @GetMapping("/validate")
-    public String validateToken(@RequestParam("token") String token){
-         authService.invalidateToken(token);
-         return "Token is valid";
+    @GetMapping(ApiEndpoints.AUTH_VALIDATE_TOKEN)
+    public String validateToken(@RequestParam("token") String token) {
+        authService.invalidateToken(token);
+        return "Token is valid";
     }
 
-    @GetMapping("/users")
-    public ResponseEntity<List<UserCredential>> getAllUsers(@RequestHeader("Authorization") String token) {
+
+    @GetMapping(ApiEndpoints.GET_ALL_USERS)
+    public ResponseEntity<List<UserCredential>> getAllUsers() {
         try {
 
-            // Validate JWT token
-            authService.invalidateToken(token);
+            // Lấy thông tin token từ SecurityContext
 
-            List<UserCredential> users = userCredentialService.getAllUserCredentials();
+
             HttpHeaders headers = new HttpHeaders();
-            headers.add("status", "success");
+            List<UserCredential> listUser = userCredentialService.getAllUserCredentials();
 
-            if (users.isEmpty()) {
+            if (listUser.isEmpty()) {
+                headers.add("status", "404");
+
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .headers(headers)
                         .body(null);
             }
 
-            return ResponseEntity.ok().headers(headers).body(users);
+            headers.add("status", "200");
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .headers(headers)
+                    .body(listUser);
 
         } catch (Exception e) {
             return ResponseEntity
@@ -149,11 +166,12 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/users/{id}")
-    public ResponseEntity<UserCredential> getUserById(@RequestHeader("Authorization") String token, @PathVariable String id) {
+    @GetMapping(ApiEndpoints.GET_USER_BY_ID)
+    public ResponseEntity<UserCredential> getUserById(@PathVariable String id) {
         try {
             // Validate JWT token
-            authService.invalidateToken(token); // Kiểm tra tính hợp lệ của token
+
+//            authService.invalidateToken(authentication);
 
             // Lấy thông tin người dùng từ service
             UserCredential user = userCredentialService.getUserCredentialById(id);
@@ -179,5 +197,6 @@ public class AuthController {
                     .body(null);
         }
     }
+
 
 }
