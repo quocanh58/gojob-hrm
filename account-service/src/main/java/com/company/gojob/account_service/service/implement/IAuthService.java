@@ -5,5 +5,5 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface IAuthService {
-    public String createUser(UserCredential userCredential);
+    public boolean createUser(UserCredential userCredential);
 }

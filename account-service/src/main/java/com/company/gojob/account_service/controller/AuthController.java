@@ -2,13 +2,15 @@ package com.company.gojob.account_service.controller;
 
 import com.company.gojob.account_service.constant.ApiEndpoints;
 import com.company.gojob.account_service.dto.UserCredentialDTO;
+import com.company.gojob.account_service.mapper.UserCredentialMapper;
 import com.company.gojob.account_service.model.UserCredential;
 import com.company.gojob.account_service.payload.request.AuthRequest;
-import com.company.gojob.account_service.payload.response.AuthResponse;
-import com.company.gojob.account_service.payload.response.LoginResponse;
+import com.company.gojob.account_service.payload.request.UpdateUserRequest;
+import com.company.gojob.account_service.payload.response.*;
 import com.company.gojob.account_service.service.AuthService;
 import com.company.gojob.account_service.service.JwtService;
 import com.company.gojob.account_service.service.UserCredentialService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.*;
 
@@ -36,10 +39,54 @@ public class AuthController {
     @Autowired
     private UserCredentialService userCredentialService;
     private String token;
+    @Autowired
+    private HandlerExceptionResolver handlerExceptionResolver;
 
     @PostMapping(ApiEndpoints.AUTH_REGISTER)
-    public String addNewUser(@RequestBody UserCredential user) {
-        return authService.createUser(user);
+    public ResponseEntity<CommonResponse<UserCredentialDTO>> addNewUser(@Valid @RequestBody UserCredentialDTO userDTO) {
+        try {
+            // Map DTO to Entity
+            UserCredential user = UserCredentialMapper.toEntity(userDTO);
+            boolean isCreate = authService.createUser(user);
+
+            if (isCreate){
+                HttpHeaders header = new HttpHeaders();
+                header.set("status", "200");
+
+                CommonResponse<UserCredentialDTO> response = new CommonResponse<>(
+                        true,
+                        "User created successfully.",
+                        userDTO
+                );
+
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .headers(header)
+                        .body(response);
+            }
+
+        } catch (Exception e) {
+            // Tạo đối tượng phản hồi khi có lỗi
+            CommonResponse<UserCredentialDTO> errorResponse = new CommonResponse<>(
+                    false,
+                    "Failed to create user: " + e.getMessage(),
+                    null
+            );
+            HttpHeaders header = new HttpHeaders();
+            header.set("status", "400");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
+        }
+
+        CommonResponse<UserCredentialDTO> errorResponse = new CommonResponse<>(
+                false,
+                "Failed to create user: ",
+                null
+        );
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
     }
 
 
@@ -171,113 +218,114 @@ public class AuthController {
         }
     }
 
-//    @GetMapping(ApiEndpoints.GET_ALL_USERS_V2)
-//    public ResponseEntity<PaginationResponse<List<UserCredential>>> getAllUsersV2(@RequestParam(value = "page", defaultValue = "1") int page,
-//                                                                                  @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
-//        HttpHeaders headers = new HttpHeaders();
-//        try {
-//            // Lấy danh sách người dùng từ dịch vụ
-//            List<UserCredential> listUser = userCredentialService.getAllUserCredentials();
-//
-//            if (listUser.isEmpty()) {
-//                headers.add("status", "404");
-//
-//                PaginationResponse<List<UserCredential>> emptyResponse = new PaginationResponse<>(
-//                        false,
-//                        new PaginationResponse.Message(new ArrayList<>()),
-//                        new ArrayList<>(),
-//                        "List user is empty.",
-//                        new PaginationResponse.Paginate(0, page, pageSize, 0),
-//                        new PaginationResponse.ExtraData()
-//                );
-//
-//                return ResponseEntity
-//                        .status(HttpStatus.NOT_FOUND)
-//                        .headers(headers)
-//                        .body(null);
-//            } else {
-//                // Tính toán phân trang
-//                int totalRecords = listUser.size();
-//                int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
-//                int startIndex = (page - 1) * pageSize;
-//                int endIndex = Math.min(startIndex + pageSize, totalRecords);
-//
-//                // Tạo đối tượng Paginate
-//                PaginationResponse.Paginate paginate = new PaginationResponse.Paginate();
-//                paginate.totalRecords = totalRecords;
-//                paginate.page = page;
-//                paginate.pageSize = pageSize;
-//                paginate.totalPages = totalPages;
-//
-//                if (startIndex >= totalRecords) {
-//                    headers.add("status", "400");
-//
-//                    PaginationResponse<List<UserCredential>> invalidPageResponse = new PaginationResponse<>(
-//                            false,
-//                            new PaginationResponse.Message(new ArrayList<>()),
-//                            new ArrayList<>(),
-//                            "Invalid page number",
-//                            new PaginationResponse.Paginate(totalRecords, page, pageSize, totalPages),
-//                            new PaginationResponse.ExtraData()
-//                    );
-//
-//                    return ResponseEntity
-//                            .status(HttpStatus.BAD_REQUEST)
-//                            .headers(headers)
-//                            .body(invalidPageResponse);
-//                }
-//
-//                List<UserCredential> paginatedUsers = listUser.subList(startIndex, endIndex);
-//
-//                // Tạo đối tượng Paginate
-//                PaginationResponse.Paginate paginateResponse = new PaginationResponse.Paginate(
-//                        totalRecords,
-//                        page,
-//                        pageSize,
-//                        totalPages
-//                );
-//
-//                // Tạo đối tượng phản hồi
-//                PaginationResponse<List<UserCredential>> response = new PaginationResponse<>(
-//                        true,
-//                        new PaginationResponse.Message(new ArrayList<>(List.of("Load data successfully."))), // Nếu cần thêm email vào message
-//                        paginatedUsers,
-//                        "Fetched successfully",
-//                        paginate,
-//                        new PaginationResponse.ExtraData()
-//                );
-//
-//                headers.add("status", "200");
-//                return ResponseEntity
-//                        .status(HttpStatus.OK)
-//                        .headers(headers)
-//                        .body(response);
-//            }
-//
-//        } catch (Exception e) {
-//            PaginationResponse<List<UserCredential>> errorResponse = new PaginationResponse<>(
-//                    false,
-//                    new PaginationResponse.Message(new ArrayList<>()),
-//                    null,
-//                    "An error occurred: " + e.getMessage(),
-//                    null,
-//                    new PaginationResponse.ExtraData()
-//            );
-//            headers.add("status", "400");
-//            return ResponseEntity
-//                    .status(HttpStatus.BAD_REQUEST)
-//                    .headers(headers)
-//                    .body(errorResponse);
-//        }
-//    }
+    @GetMapping(ApiEndpoints.GET_ALL_USERS_V2)
+    public ResponseEntity<PaginationResponse<List<UserCredential>>> getAllUsersV2(@RequestParam(value = "page", defaultValue = "1") int page,
+                                                                                  @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+        HttpHeaders headers = new HttpHeaders();
+        try {
+            // Lấy danh sách người dùng từ dịch vụ
+            List<UserCredential> listUser = userCredentialService.getAllUserCredentials();
+
+            if (listUser.isEmpty()) {
+                headers.add("status", "404");
+
+                PaginationResponse<List<UserCredential>> emptyResponse =
+                        PaginationResponse.<List<UserCredential>>builder()
+                                .success(false)
+                                .message("List user is empty")
+                                .data(new ArrayList<>())
+                                .devMessage("List user is empty.")
+                                .paginate(new Paginate(0, page, pageSize, 0))
+                                .extraData(null)
+                                .build();
+
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .headers(headers)
+                        .body(null);
+            } else {
+                // Tính toán phân trang
+                int totalRecords = listUser.size();
+                int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+                int startIndex = (page - 1) * pageSize;
+                int endIndex = Math.min(startIndex + pageSize, totalRecords);
+
+                // Tạo đối tượng Paginate
+                Paginate paginate = new Paginate();
+                paginate.totalRecords = totalRecords;
+                paginate.page = page;
+                paginate.pageSize = pageSize;
+                paginate.totalPages = totalPages;
+
+                if (startIndex >= totalRecords) {
+                    headers.add("status", "400");
+
+                    PaginationResponse<List<UserCredential>> invalidPageResponse =
+                            PaginationResponse.<List<UserCredential>>builder()
+                                    .success(false)
+                                    .message("Get data failed.")
+                                    .data(new ArrayList<>())
+                                    .devMessage("Invalid page number")
+                                    .paginate(new Paginate(totalRecords, page, pageSize, totalPages))
+                                    .extraData(null)
+                                    .build();
+
+                    return ResponseEntity
+                            .status(HttpStatus.BAD_REQUEST)
+                            .headers(headers)
+                            .body(invalidPageResponse);
+                }
+
+                List<UserCredential> paginatedUsers = listUser.subList(startIndex, endIndex);
+
+                // Tạo đối tượng Paginate
+                Paginate paginateResponse = new Paginate(
+                        totalRecords,
+                        page,
+                        pageSize,
+                        totalPages
+                );
+
+                // Tạo đối tượng phản hồi
+                PaginationResponse<List<UserCredential>> response =
+
+                        PaginationResponse.<List<UserCredential>>builder()
+                                .success(true)
+                                .message("Get data successfully.")
+                                .data(paginatedUsers)
+                                .devMessage("Fetched successfully")
+                                .paginate(paginate)
+                                .extraData(null)
+                                .build();
+
+                headers.add("status", "200");
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .headers(headers)
+                        .body(response);
+            }
+
+        } catch (Exception e) {
+            PaginationResponse<List<UserCredential>> errorResponse =
+                    PaginationResponse.<List<UserCredential>>builder()
+                            .success(false)
+                            .message("Get data failed.")
+                            .data(null)
+                            .devMessage("")
+                            .paginate(null)
+                            .extraData(null)
+                            .build();
+            headers.add("status", "400");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .headers(headers)
+                    .body(errorResponse);
+        }
+    }
 
     @GetMapping(ApiEndpoints.GET_USER_BY_ID)
     public ResponseEntity<UserCredential> getUserById(@PathVariable String id) {
         try {
-            // Validate JWT token
-
-//            authService.invalidateToken(authentication);
-
             // Lấy thông tin người dùng từ service
             UserCredential user = userCredentialService.getUserCredentialById(id);
             HttpHeaders headers = new HttpHeaders();
@@ -303,5 +351,72 @@ public class AuthController {
         }
     }
 
+    @PutMapping(ApiEndpoints.UPDATE_USER)
+    public ResponseEntity<UserCredentialResponse> updateUser(@PathVariable String id, @Valid @RequestBody UpdateUserRequest request) {
+        try {
+            if (request.getUsername() != null || request.getUsername() != null) {
+                // Cập nhật thông tin người dùng từ service
+                int isSuccess = userCredentialService.updateUserCredentialById(id, request.getEmail(), request.getUsername());
 
+                if (isSuccess > 0) {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.add("status", "200");
+                    UserCredentialResponse response = new UserCredentialResponse(id, request.getEmail(), request.getUsername());
+
+                    return ResponseEntity
+                            .ok()
+                            .headers(headers)
+                            .body(response);
+                } else {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.add("status", "400");
+                    return ResponseEntity
+                            .status(HttpStatus.BAD_REQUEST)
+                            .headers(headers)
+                            .body(new UserCredentialResponse(id, null, null));
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error updating user: " + e.getMessage(), e);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("status", "400");
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .headers(headers)
+                .body(new UserCredentialResponse(id, null, null));
+    }
+
+    @DeleteMapping(ApiEndpoints.DELETE_USER)
+    public ResponseEntity<CommonResponse<?>> deleteUser(@PathVariable String id) {
+        HttpHeaders headers = new HttpHeaders();
+
+        try {
+            UserCredential user = userCredentialService.getUserCredentialById(id);
+            // Xóa người dùng từ service
+            int isSuccess = userCredentialService.deleteUserCredentialById(id);
+
+            if (isSuccess > 0) {
+                headers.add("status", "200");
+
+                Map<String, String> body = new HashMap<String, String>();
+                body.put("userId", user.getId());
+                body.put("username", user.getUsername());
+                body.put("email", user.getEmail());
+                return ResponseEntity
+                        .ok()
+                        .headers(headers)
+                        .body(new CommonResponse<>(true, "Delete user success", body));
+            } else {
+                headers.add("status", "400");
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .headers(headers)
+                        .body(new CommonResponse<>(true, "Delete user failed.", null));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting user: " + e.getMessage(), e);
+        }
+    }
 }

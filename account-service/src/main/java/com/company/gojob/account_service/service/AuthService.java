@@ -23,10 +23,10 @@ public class AuthService implements IAuthService {
     JwtService jwtService;
 
     @Override
-    public String createUser(UserCredential userCredential) {
+    public boolean createUser(UserCredential userCredential) {
         userCredential.setPassword(passwordEncoder.encode(userCredential.getPassword()));
         authRepository.save(userCredential);
-        return "Create user successfully.";
+        return true;
     }
 
     public String generateToken(String userName){

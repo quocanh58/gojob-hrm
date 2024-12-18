@@ -15,11 +15,11 @@ public class ApiEndpoints {
 
     // Endpoint cho UserCredential
     public static final String USER_URL = BASE_URL + "/user";
-    public static final String GET_ALL_USERS = USER_URL;  // GET /api/users
-    public static final String GET_ALL_USERS_V2 = USER_URL + "/v2";  // GET /api/users
-    public static final String GET_USER_BY_ID = USER_URL + "/{id}";  // GET /api/users/{id}
-    public static final String CREATE_USER = USER_URL;  // POST /api/users
-    public static final String UPDATE_USER = USER_URL + "/{id}";  // PUT /api/users/{id}
-    public static final String DELETE_USER = USER_URL + "/{id}";  // DELETE /api/users/{id}
+    public static final String GET_ALL_USERS = USER_URL;                    // GET /api/users
+    public static final String GET_ALL_USERS_V2 = USER_URL + "/paginate";   // GET /api/users/paginate
+    public static final String GET_USER_BY_ID = USER_URL + "/{id}";         // GET /api/users/{id}
+    public static final String CREATE_USER = USER_URL;                      // POST /api/users
+    public static final String UPDATE_USER = USER_URL + "/{id}";            // PUT /api/v1/users/{id}
+    public static final String DELETE_USER = USER_URL + "/{id}";            // DELETE /api/users/{id}
 
 }

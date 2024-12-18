@@ -1,6 +1,5 @@
-package com.company.gojob.account_service.dto;
+package com.company.gojob.account_service.payload.request;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserCredentialDTO {
-    private String id;
+public class UpdateUserRequest {
     private String username;
     private String email;
-    private String password;
 }

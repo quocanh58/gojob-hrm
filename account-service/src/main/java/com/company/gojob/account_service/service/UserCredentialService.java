@@ -40,4 +40,14 @@ public class UserCredentialService implements IUserCredentialService {
         }
         return modelMapper.map(userCredential, UserCredentialDTO.class);
     }
+
+    @Override
+    public int updateUserCredentialById(String id, String email, String username) {
+        return userCredentialRepository.updateUserCredentialById(id, email, username);
+    }
+
+    @Override
+    public int deleteUserCredentialById(String id) {
+        return userCredentialRepository.deleteUserCredentialById(id);
+    }
 }

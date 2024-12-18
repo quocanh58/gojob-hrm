@@ -5,14 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
+import java.io.Serializable;
 
 @Data
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user_credential")
-public class UserCredential {
+public class UserCredential implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
