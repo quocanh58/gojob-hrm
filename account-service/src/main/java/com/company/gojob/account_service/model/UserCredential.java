@@ -21,11 +21,4 @@ public class UserCredential {
     private String password;
     private String email;
 
-//    public void setId() {
-//        this.id = generateId();
-//    }
-//
-//    private String generateId() {
-//        return UUID.randomUUID().toString();
-//    }
 }

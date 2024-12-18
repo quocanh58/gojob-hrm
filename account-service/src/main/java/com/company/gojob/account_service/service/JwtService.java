@@ -34,8 +34,7 @@ public class JwtService {
     public String generateToken(String userName) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", userName);
-//        claims.put("userId", userId);
-        return createToken(claims, userName, 1000 * 60 * 3); // Expire in 3 minutes
+        return createToken(claims, userName, 1000 * 60 * 30); // Expire in 30 minutes
     }
 
     // Generate refresh token (longer expiry)
@@ -43,6 +42,11 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", userName);
         return createToken(claims, userName, 1000 * 60 * 60 * 24 * 7); // Expire in 7 days
+    }
+
+    public Date getExpirationDateFromToken(String token) {
+        Claims claims = extractClaims(token);
+        return claims.getExpiration();
     }
 
     // Create token

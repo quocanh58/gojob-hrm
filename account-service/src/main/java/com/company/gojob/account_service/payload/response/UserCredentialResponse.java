@@ -9,17 +9,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserCredentialResponse {
-    private boolean success;
-    private Data data;
-    private String message;
-
-    @lombok.Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Data {
-        private String accessToken;
-        private String refreshToken;
-        private Date expiredDate;
-        private UserCredential user;
-    }
+    private String id;
+    private String username;
+    private String email;
 }

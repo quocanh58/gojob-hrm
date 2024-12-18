@@ -38,8 +38,8 @@ public class AuthConfig {
                 .cors(cors -> cors.configure(http)) // Enable CORS
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers(
-                                "/api/auth/**",
-                                "/v3/api-docs/**", // Đường dẫn cho OpenAPI
+                        "/api/v1/auth/**",
+                        "/v3/api-docs/**", // Đường dẫn cho OpenAPI
                         "/swagger-ui.html", // Đường dẫn cho Swagger UI
                         "/swagger-ui/**", // Đường dẫn cho các tài nguyên Swagger UI
                         "/actuator/**" // Nếu bạn có sử dụng actuator

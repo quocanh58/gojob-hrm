@@ -1,8 +1,11 @@
 package com.company.gojob.account_service.service;
 
+import com.company.gojob.account_service.dto.UserCredentialDTO;
 import com.company.gojob.account_service.model.UserCredential;
+import com.company.gojob.account_service.payload.response.UserCredentialResponse;
 import com.company.gojob.account_service.repository.UserCredentialRepository;
 import com.company.gojob.account_service.service.implement.IUserCredentialService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,8 @@ public class UserCredentialService implements IUserCredentialService {
     @Autowired
     UserCredentialRepository userCredentialRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Override
     public List<UserCredential> getAllUserCredentials() {
@@ -25,5 +30,14 @@ public class UserCredentialService implements IUserCredentialService {
     @Override
     public UserCredential getUserCredentialById(String id) {
         return userCredentialRepository.findUserCredentialById(id);
+    }
+
+    @Override
+    public UserCredentialDTO getUserCredentialByUserName(String username) {
+        UserCredential userCredential = userCredentialRepository.findUserCredentialByUsername(username);
+        if (userCredential == null) {
+            return null;
+        }
+        return modelMapper.map(userCredential, UserCredentialDTO.class);
     }
 }
